@@ -7,5 +7,6 @@
 mutate_east_north(wind_data)
 }
 \description{
-Title
+Given a tibble with wind vector direction in degrees and the average signed
+wind vector speed, return a tibble with the northerly and easterly wind components.
 }

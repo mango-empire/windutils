@@ -1,5 +1,9 @@
 #' Title
 #'
+#' @description
+#' Given a tibble with wind vector direction in degrees and the average signed
+#' wind vector speed, return a tibble with the northerly and easterly wind components.
+#'
 #'
 #' @import dplyr
 #' @import lubridate
