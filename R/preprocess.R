@@ -61,7 +61,8 @@ mutate_daynight <- function(wind_data) {
 mutate_vecmean <- function(wind_data) {
     wind_data |>
         mutate(wdir_rad = atan2(easterly, northerly),
-               wspd_vec_mean = northerly / cos(wdir_rad))
+               wspd_vec_mean = northerly / cos(wdir_rad)) |>
+        mutate(wdir_rad = if_else(wdir_rad < 0, wdir_rad + 2*pi, wdir_rad))
 }
 
 
