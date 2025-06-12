@@ -9,13 +9,61 @@
 plot_wspd_median <- function(wind_data) {
 
     wind_data |>
-        summarise_10_median(wspd_vec_mean) |>
-        ggplot(aes(time, mean_median_wspd_vec_mean)) +
-            geom_point(shape = 1) +
+        summarise_10_median(wspd_vec_mean, easterly, northerly) |>
+        mutate(mean_mag_comp_median = sqrt(mean_median_easterly^2 + mean_median_northerly^2)) |>
+        select(time, mean_median_wspd_vec_mean, mean_mag_comp_median) |>
+        pivot_longer(cols = starts_with("mean"),
+                     names_to = 'type',
+                     values_to = 'wnd_speed') |>
+        ggplot(aes(time, wnd_speed, group = type, shape = type)) +
+            geom_point() +
+            scale_shape_manual(values = c("mean_median_wspd_vec_mean" = 16, "mean_mag_comp_median" = 3)) +
             ggtitle("Wind Speed (m/s)") +
             ylab("median") +
             xlab("hour (UTC)") +
             theme_minimal()
+}
+
+
+#' Title
+#'
+#'
+#' @import dplyr
+#' @import ggplot2
+#'
+#' @export
+#'
+plot_wspd_median_compare <- function(wind_data, synthetic_data) {
+
+    ww_real <- wind_data |>
+        summarise_10_median(wspd_vec_mean, easterly, northerly) |>
+        mutate(mean_mag_comp_median = sqrt(mean_median_easterly^2 + mean_median_northerly^2)) |>
+        select(time, mean_median_wspd_vec_mean, mean_mag_comp_median) |>
+        pivot_longer(cols = starts_with("mean"),
+                     names_to = 'type',
+                     values_to = 'wnd_speed') |>
+        mutate(source = 'real')
+
+
+    ww_synth <- synthetic_data |>
+        summarise_10_median(wspd_vec_mean, easterly, northerly) |>
+        mutate(mean_mag_comp_median = sqrt(mean_median_easterly^2 + mean_median_northerly^2)) |>
+        select(time, mean_median_wspd_vec_mean, mean_mag_comp_median) |>
+        pivot_longer(cols = starts_with("mean"),
+                     names_to = 'type',
+                     values_to = 'wnd_speed') |>
+        mutate(source = 'synthetic')
+
+    ww_combine <- rbind(ww_synth, ww_real)
+
+    ww_combine |>
+        ggplot(aes(time, wnd_speed, group = type, shape = type, color = source)) +
+        geom_point() +
+        scale_shape_manual(values = c("mean_median_wspd_vec_mean" = 16, "mean_mag_comp_median" = 3)) +
+        ggtitle("Wind Speed (m/s)") +
+        ylab("wind speed (m/s)") +
+        xlab("hour (UTC)") +
+        theme_minimal()
 }
 
 #' Title

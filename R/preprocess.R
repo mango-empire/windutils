@@ -119,6 +119,7 @@ summarise_10_median <- function(wind_data, ...) {
 }
 
 
+
 #' Title
 #'
 #'
