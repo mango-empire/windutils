@@ -59,9 +59,15 @@ plot_wspd_median_compare <- function(wind_data, synthetic_data) {
     ww_combine |>
         ggplot(aes(time, wnd_speed, group = type, shape = type, color = source)) +
         geom_point() +
-        scale_shape_manual(values = c("mean_median_wspd_vec_mean" = 16, "mean_mag_comp_median" = 3)) +
-        ggtitle("Wind Speed (m/s)") +
-        ylab("wind speed (m/s)") +
+        scale_shape_manual(values = c("mean_median_wspd_vec_mean" = 16, "mean_mag_comp_median" = 3),
+                           labels = c("mean_median_wspd_vec_mean" = "Vector Mean",
+                                      "mean_mag_comp_median" = "Component Median")) +
+        ggtitle("Synthetic vs Real") +
+        ylab("Median Wind Speed (m/s)") +
+        ggsci::scale_color_npg(labels = c(
+            "real" = "Real Data",
+            "synthetic" = "Synthetic Data"
+        )) +
         xlab("hour (UTC)") +
         theme_minimal()
 }
