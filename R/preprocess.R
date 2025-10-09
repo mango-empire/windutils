@@ -19,6 +19,79 @@ mutate_east_north <- function(wind_data) {
                easterly = wspd_vec_mean * sin(wdir_rad))
 }
 
+#' Title
+#'
+#' @param wind_data
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+mutate_fill_missing <- function(wind_data) {
+    wind_data |>
+        group_by(year = year(time)) |>
+        tidyr::complete(time = seq(min(time), max(time), by = "1 min")) |>
+        ungroup() |>
+        select(-year)
+}
+
+
+#' Title
+#'
+#' @param wind_data
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+gap_summary <- function(wind_data, gap_size = 1) {
+
+    wind_data %>%
+        arrange(time) %>%
+        mutate(row_index = row_number()) %>%
+        mutate(
+            gap_start_index = lag(row_index),
+            previous_time = lag(time),
+            gap_duration = time - lag(time)
+        ) %>%
+        # Filter for gaps longer than 1 minute
+        filter(gap_duration > minutes(1)) %>%
+        # Select and rename columns for a clean report, including the new index
+        select(
+            gap_start_index,
+            gap_start_time = previous_time,
+            gap_end_time = time,
+            duration = gap_duration
+        )
+}
+
+ortho_decomp <- function(cur_x, cur_y, lag_x, lag_y) {
+    #performs operations by row
+    Vcur <- c(cur_x, cur_y)
+    Vprv <- c(lag_x, lag_y)
+    DD <- Vcur - Vprv
+
+    nn <- sqrt(sum(Vprv^2))
+
+    ss <- sum(DD * Vprv) / nn^2
+    pp <- ss * Vprv
+    hh <- DD - pp
+
+    pp_axis <- ss * nn
+
+    crossprod <- Vprv[1] * Vcur[2] - Vprv[2] * Vcur[1]
+    hh_dir <- ifelse(crossprod < 0, 1, -1)
+    hh_axis <- sqrt(sum(hh^2)) * hh_dir
+
+    #pp_axis is parallel to Vprv
+    #hh_axis is orthogonal to Vprv
+    c(pp_axis = pp_axis, hh_axis = hh_axis)
+}
+
+
+
+
+
 
 #' Title
 #'

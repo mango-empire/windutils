@@ -117,11 +117,18 @@ plot_cycle_median <- function(wind_data) {
         wind_data <- wind_data |> mutate_east_north()
     }
 
-    wind_data |>
-        summarise_10_median(easterly, northerly) |>
-        ggplot(aes(mean_median_easterly, mean_median_northerly)) +
-            geom_path() +
-            theme_minimal()
+    E0.5 <- wind_data |> summarise_10_median(easterly) |> _$mean_median_easterly
+    N0.5 <- wind_data |> summarise_10_median(northerly) |> _$mean_median_northerly
+
+    par(mar=c(4,4,0.5,0.5))
+    plot(E0.5,N0.5,type="n",asp=1, xlab="Easterly (m/s)",ylab="Northerly (m/s)",cex.axis=0.72,cex.lab=
+             0.72)
+    lines(E0.5[1:13],N0.5[1:13],col=3)
+    lines(E0.5[13:73],N0.5[13:73],col=gray(0.6))
+    lines(E0.5[73:85],N0.5[73:85],col=2)
+    lines(E0.5[c(85:144,1)],N0.5[c(85:144,1)])
+    points(E0.5[0:23*6+1],N0.5[0:23*6+1],col=c(3,3,rep(gray(0.6),10),2,2,rep(1,10)),
+           pch=c(4,rep(1,23)))
 }
 
 
@@ -241,3 +248,74 @@ plot_five_quantile_compare <- function(wind_data, synthetic_data) {
         theme_minimal()
 }
 
+
+#' Title
+#'
+#' @param wind_data
+#' @param wspd_lim
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+plot_orthogonal_decomp <- function(wind_data, skip_n = 1440, wspd_lim = c(1,5)) {
+    #requires daynight and east_north
+
+    if(!all(c("northerly", "easterly") %in% names(wind_data))) {
+        wind_data <- wind_data |> mutate_east_north()
+    }
+
+    if(!all(c("daynight") %in% names(wind_data))) {
+        wind_data <- wind_data |> mutate_daynight()
+    }
+
+    decomp <- wind_data |>
+        filter(wspd_vec_mean <= wspd_lim[2], wspd_vec_mean > wspd_lim[1]) |>
+        mutate_fill_missing() |>
+        mutate(lag_northerly = lag(northerly, 1),
+               lag_easterly = lag(easterly, 1)) |>
+        rowwise() |>
+        mutate(ortho_decomp = list(ortho_decomp(easterly, northerly, lag_easterly, lag_northerly))) |>
+        unnest_wider(ortho_decomp) |>
+        select(time, hh_axis, pp_axis, wspd_vec_mean, daynight) |>
+        filter(row_number() %% skip_n != 0) |> #skip every skip_nth row
+        drop_na()
+
+    bw <- c(0.4,0.4)
+    xl <- c(-3,3)
+    xs <- c(-10.5,9.8)
+    hlev <- -6:0/2
+    gs <- c(101,101)
+
+    ltx <- paste0("(", wspd_lim[1],",", wspd_lim[2],"]")
+    mlab1 <- paste0("nighttime, wind speed ", ltx, " m/s")
+    mlab2 <- paste0("daytime, wind speed ", ltx, " m/s")
+
+    par(mfrow=c(2,2),mar=c(4,4,3.5,0.5))
+    ttp <- decomp |> filter(daynight == "N")
+    x31 = ttp$hh_axis
+    y31 =  ttp$pp_axis
+    smoothScatter(x31,y31,xlab="change orthogonal to current direction",xlim=xs,ylim=xs,
+                  ylab="change along current direction",asp=1,nbin=201,cex.axis=0.85,cex.lab=0.85)
+    hh31 = bkde2D(cbind(x31,y31),bandwidth=bw,gridsize=gs)
+    contour(hh31$x1,hh31$x2,log10(hh31$fhat),levels=hlev,xlim=xl,ylim=xl,asp=1,
+            xlab="change orthogonal to current direction",
+            ylab="change along current direction",cex.axis=0.85,cex.lab=0.85)
+    abline(h=0,col=gray(0.5),lty=2)
+    abline(v=0,col=gray(0.5),lty=2)
+    mtext(mlab1,side=3,line=1.5,at=-5.2,cex=0.85)
+
+    ttp <- decomp |> filter(daynight == "D")
+    x31 = ttp$hh_axis
+    y31 =  ttp$pp_axis
+    smoothScatter(x31,y31,xlab="change orthogonal to current direction",xlim=xs,ylim=xs,
+                  ylab="change along current direction",asp=1,nbin=201,cex.axis=0.85,cex.lab=0.85)
+    hh31 = bkde2D(cbind(x31,y31),bandwidth=bw,gridsize=gs)
+    contour(hh31$x1,hh31$x2,log10(hh31$fhat),levels=hlev,xlim=xl,ylim=xl,asp=1,
+            xlab="change orthogonal to current direction",
+            ylab="change along current direction",cex.axis=0.85,cex.lab=0.85)
+    abline(h=0,col=gray(0.5),lty=2)
+    abline(v=0,col=gray(0.5),lty=2)
+    mtext(mlab2,side=3,line=1.5,at=-5.2,cex=0.85)
+
+}
